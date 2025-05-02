@@ -1,0 +1,87 @@
+
+import json
+import hashlib
+import os
+
+DATA_FILE = "voters.json"
+CANDIDATES = ["Alice", "Bob", "Charlie"]
+
+def load_data():
+    if not os.path.exists(DATA_FILE):
+        return {"voters": {}, "votes": {cand: 0 for cand in CANDIDATES}}
+    with open(DATA_FILE, "r") as f:
+        return json.load(f)
+
+def save_data(data):
+    with open(DATA_FILE, "w") as f:
+        json.dump(data, f, indent=4)
+
+def hash_password(password):
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def register_voter(data):
+    voter_id = input("Enter new Voter ID: ").strip()
+    if voter_id in data["voters"]:
+        print("Voter already registered.")
+        return
+    password = input("Create a password: ").strip()
+    data["voters"][voter_id] = {
+        "password": hash_password(password),
+        "voted": False
+    }
+    print("Voter registered successfully.")
+
+def login(data):
+    voter_id = input("Enter Voter ID: ").strip()
+    password = input("Enter password: ").strip()
+    voter = data["voters"].get(voter_id)
+    if voter and voter["password"] == hash_password(password):
+        print("Login successful.")
+        return voter_id
+    else:
+        print("Invalid credentials.")
+        return None
+
+def cast_vote(data, voter_id):
+    if data["voters"][voter_id]["voted"]:
+        print("You have already voted.")
+        return
+    print("Candidates:")
+    for i, name in enumerate(CANDIDATES, 1):
+        print(f"{i}. {name}")
+    choice = int(input("Choose candidate number: "))
+    if 1 <= choice <= len(CANDIDATES):
+        selected = CANDIDATES[choice - 1]
+        data["votes"][selected] += 1
+        data["voters"][voter_id]["voted"] = True
+        print(f"You voted for {selected}.")
+    else:
+        print("Invalid choice.")
+
+def show_results(data):
+    print("\n--- Voting Results ---")
+    for candidate, votes in data["votes"].items():
+        print(f"{candidate}: {votes} votes")
+
+def main():
+    data = load_data()
+    while True:
+        print("\n1. Register\n2. Login & Vote\n3. View Results\n4. Exit")
+        choice = input("Choose an option: ")
+        if choice == "1":
+            register_voter(data)
+        elif choice == "2":
+            voter_id = login(data)
+            if voter_id:
+                cast_vote(data, voter_id)
+        elif choice == "3":
+            show_results(data)
+        elif choice == "4":
+            save_data(data)
+            break
+        else:
+            print("Invalid option.")
+        save_data(data)
+
+if __name__ == "__main__":
+    main()
